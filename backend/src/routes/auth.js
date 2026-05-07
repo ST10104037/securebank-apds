@@ -4,7 +4,7 @@
  * POST /api/auth/register   — customer self-registration
  * POST /api/auth/login      — customer login
  * POST /api/auth/employee/login — employee login
- *
+ * hhh
  * Note: Employee registration is intentionally NOT exposed as a public API.
  * Employees are seeded / created by an admin script.
  */
@@ -157,4 +157,4 @@ router.post(
   }
 );
 
-module.exports = router;
+module.exports = router; 
