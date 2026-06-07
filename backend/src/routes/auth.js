@@ -4,7 +4,7 @@
  * POST /api/auth/register   — customer self-registration
  * POST /api/auth/login      — customer login
  * POST /api/auth/employee/login — employee login
- * hhh
+ * www
  * Note: Employee registration is intentionally NOT exposed as a public API.
  * Employees are seeded / created by an admin script.
  */
