@@ -1,4 +1,3 @@
-
 version: 2.1
 
 orbs:
@@ -54,7 +53,7 @@ jobs:
           name: Run Security Tests
           command: npx jest --testPathPatterns="security" --passWithNoTests --forceExit
 
- deploy:
+  deploy:
     docker:
       - image: cimg/node:20.19.0
     working_directory: ~/project/apds-part
@@ -64,8 +63,7 @@ jobs:
           at: .
       - run:
           name: Deploy to Firebase Hosting
-          command: |
-            npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+          command: npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
 
 workflows:
   secure_pipeline:
