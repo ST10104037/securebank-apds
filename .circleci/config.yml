@@ -23,7 +23,7 @@ jobs:
 
   dependency_audit:
     docker:
-      - image: cimg/node:20.11
+      - image: cimg/node:20.19.0
     steps:
       - checkout
       - node/install-packages:
