@@ -53,7 +53,7 @@ jobs:
           name: Run Security Tests
           command: npx jest --testPathPatterns="security" --passWithNoTests --forceExit
 
-  deploy:
+ deploy:
     docker:
       - image: cimg/node:20.19.0
     working_directory: ~/project/apds-part
