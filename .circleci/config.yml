@@ -51,7 +51,7 @@ jobs:
           pkg-manager: npm
       - run:
           name: Run Security Tests
-          command: npx jest --testPathPattern="security" --passWithNoTests --forceExit
+          command: npx jest --testPathPatterns="security" --passWithNoTests --forceExit
 
   deploy:
     docker:
