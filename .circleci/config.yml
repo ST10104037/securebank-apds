@@ -34,7 +34,7 @@ jobs:
 
   sonarqube_scan:
     docker:
-      - image: cimg/node:20.19.0  # <--- Updated
+      - image: cimg/node:20.19.0
     steps:
       - checkout
       - attach_workspace:
@@ -44,7 +44,7 @@ jobs:
 
   security_tests:
     docker:
-      - image: cimg/node:20.19.0  # <--- Updated
+      - image: cimg/node:20.19.0
     steps:
       - checkout
       - node/install-packages:
@@ -55,8 +55,8 @@ jobs:
 
   deploy:
     docker:
-      - image: cimg/node:20.19.0  
-      working_directory: ~/project/apds-part  
+      - image: cimg/node:20.19.0
+    working_directory: ~/project/apds-part
     steps:
       - checkout
       - attach_workspace:
@@ -64,7 +64,7 @@ jobs:
       - run:
           name: Deploy to Firebase Hosting
           command: |
-           npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+            npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
 
 workflows:
   secure_pipeline:
