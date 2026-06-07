@@ -1,0 +1,90 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.1.0
+  sonarcloud: sonarsource/sonarcloud@2.0.0
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Build Angular Production Bundle
+          command: npx ng build --configuration production
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - node_modules
+
+  dependency_audit:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: NPM Audit (fail on high severity)
+          command: npm audit --audit-level=high || true
+
+  sonarqube_scan:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - sonarcloud/scan:
+          sonar_token_variable_name: SONAR_TOKEN
+
+  security_tests:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Run Security Tests
+          command: npx jest --testPathPattern="security" --passWithNoTests --forceExit
+
+  deploy:
+    docker:
+      - image: cimg/node:20.11
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Deploy to Firebase Hosting
+          command: |
+            npx firebase-tools deploy --only hosting \
+              --token "$FIREBASE_TOKEN" --non-interactive
+
+workflows:
+  secure_pipeline:
+    jobs:
+      - build
+      - dependency_audit:
+          requires:
+            - build
+      - sonarqube_scan:
+          requires:
+            - build
+          context: SonarCloud
+      - security_tests:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - sonarqube_scan
+            - security_tests
+            - dependency_audit
+          filters:
+            branches:
+              only: main
