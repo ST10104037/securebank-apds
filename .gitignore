@@ -42,3 +42,13 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+backend/.env
+backend/ssl/
+*.key
+*.cert
+
+backend/.env
+backend/ssl/
+.env
+ssl/
