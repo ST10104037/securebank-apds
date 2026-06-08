@@ -69,9 +69,12 @@ class RateLimiter {
 
 // ─── XSS / SQL injection detector (input sanitiser) ──────────────────────────
 function containsMaliciousInput(value: string): boolean {
-  const xss = /<[^>]*script|javascript:|on\w+\s*=|<iframe|<object|<embed/i;
-  const sql = /('|--|;|\bOR\b|\bAND\b|\bDROP\b|\bSELECT\b|\bUNION\b|\bINSERT\b)/i;
-  return xss.test(value) || sql.test(value);
+  const lower = value.toLowerCase();
+  const xssPhrases = ['<script', 'javascript:', '<iframe', '<object', '<embed'];
+  const sqlPhrases = ["' or", "' and", '--', '; drop', 'select ', 'union ', 'insert '];
+  const hasXss = xssPhrases.some(p => lower.includes(p));
+  const hasSql = sqlPhrases.some(p => lower.includes(p));
+  return hasXss || hasSql;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
