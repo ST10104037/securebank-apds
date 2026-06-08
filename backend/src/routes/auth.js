@@ -1,12 +1,12 @@
 /**
  * auth.routes.js — Customer & Employee authentication
  *
- * POST /api/auth/register   — customer self-registration
- * POST /api/auth/login      — customer login
- * POST /api/auth/employee/login — employee login
- * www
+ * POST /api/auth/register          — customer self-registration
+ * POST /api/auth/login             — customer login
+ * POST /api/auth/employee/login    — employee login
+ *
  * Note: Employee registration is intentionally NOT exposed as a public API.
- * Employees are seeded / created by an admin script.
+ * Employees are seeded by an admin script only.
  */
 
 const express = require('express');
@@ -17,7 +17,14 @@ const { validateBody } = require('../utils/validators');
 
 const router = express.Router();
 
-const JWT_EXPIRES_IN = '2h'; // Short-lived tokens
+const JWT_EXPIRES_IN = '2h';
+
+// ─── Helper: sanitize a string for safe DB query use ─────────────────────────
+// Strips any characters that are not alphanumeric, underscore, hyphen, or dot.
+// Prevents NoSQL injection even after mongoSanitize middleware.
+function sanitizeString(value) {
+  return String(value).replace(/[^\w.\-@]/g, '').trim();
+}
 
 // ─── Customer Registration ────────────────────────────────────────────────────
 router.post(
@@ -27,12 +34,19 @@ router.post(
     try {
       const { fullName, idNumber, accountNumber, username, password } = req.body;
 
-      // Check for duplicate username / ID / account
+      const safeUsername = sanitizeString(username).toLowerCase();
+      const safeIdNumber = sanitizeString(idNumber);
+      const safeAccountNumber = sanitizeString(accountNumber);
+
       const existing = await Customer.findOne({
-        $or: [{ username }, { idNumber }, { accountNumber }],
+        $or: [
+          { username: safeUsername },
+          { idNumber: safeIdNumber },
+          { accountNumber: safeAccountNumber },
+        ],
       });
+
       if (existing) {
-        // Generic message — don't reveal which field matched (enumeration attack)
         return res
           .status(409)
           .json({ error: 'An account with those details already exists.' });
@@ -40,19 +54,19 @@ router.post(
 
       const customer = await Customer.create({
         fullName: fullName.trim(),
-        idNumber: idNumber.trim(),
-        accountNumber: accountNumber.trim(),
-        username: username.trim().toLowerCase(),
-        password, // hashed by pre-save hook in model
+        idNumber: safeIdNumber,
+        accountNumber: safeAccountNumber,
+        username: safeUsername,
+        password,
       });
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'Registration successful. Please log in.',
         customerId: customer._id,
       });
     } catch (err) {
       console.error('Register error:', err);
-      res.status(500).json({ error: 'Registration failed' });
+      return res.status(500).json({ error: 'Registration failed' });
     }
   }
 );
@@ -65,14 +79,16 @@ router.post(
     try {
       const { username, accountNumber, password } = req.body;
 
-      // select: false on password — must explicitly include it
+      // Sanitize before using in DB query — prevents NoSQL injection
+      const safeUsername = sanitizeString(username).toLowerCase();
+      const safeAccountNumber = sanitizeString(accountNumber);
+
       const customer = await Customer.findOne({
-        username: username.toLowerCase(),
-        accountNumber,
+        username: safeUsername,
+        accountNumber: safeAccountNumber,
       }).select('+password');
 
       if (!customer) {
-        // Consistent message — don't reveal whether username or account was wrong
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
@@ -93,7 +109,7 @@ router.post(
         { expiresIn: JWT_EXPIRES_IN }
       );
 
-      res.json({
+      return res.json({
         message: 'Login successful',
         token,
         user: {
@@ -104,7 +120,7 @@ router.post(
       });
     } catch (err) {
       console.error('Login error:', err);
-      res.status(500).json({ error: 'Login failed' });
+      return res.status(500).json({ error: 'Login failed' });
     }
   }
 );
@@ -117,8 +133,11 @@ router.post(
     try {
       const { username, password } = req.body;
 
+      // Sanitize before using in DB query
+      const safeUsername = sanitizeString(username).toLowerCase();
+
       const employee = await Employee.findOne({
-        username: username.toLowerCase(),
+        username: safeUsername,
       }).select('+password');
 
       if (!employee) {
@@ -141,7 +160,7 @@ router.post(
         { expiresIn: JWT_EXPIRES_IN }
       );
 
-      res.json({
+      return res.json({
         message: 'Login successful',
         token,
         user: {
@@ -152,9 +171,9 @@ router.post(
       });
     } catch (err) {
       console.error('Employee login error:', err);
-      res.status(500).json({ error: 'Login failed' });
+      return res.status(500).json({ error: 'Login failed' });
     }
   }
 );
 
-module.exports = router; 
+module.exports = router;
