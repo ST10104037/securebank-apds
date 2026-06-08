@@ -7,12 +7,12 @@
 // ─── Regex patterns (mirrors what your Angular components use) ───────────────
 const PATTERNS = {
   accountNumber: /^\d{8,12}$/,
-  fullName:      /^[a-zA-Z\s\-']{2,50}$/,
+  fullName:      /^[a-zA-Z ]{2,50}$/,
   idNumber:      /^\d{13}$/,
   amount:        /^\d+(\.\d{1,2})?$/,
   swiftCode:     /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
   currency:      /^(USD|EUR|GBP|ZAR|JPY|AUD|CAD|CHF|CNY|INR)$/,
-  password:      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/,
+  password:      /^[A-Za-z\d@$!%*?&_#]{8,64}$/,
 };
 
 // ─── Security header config (mirrors firebase.json headers) ──────────────────
