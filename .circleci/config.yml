@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  node: circleci/node@5.1.0
   sonarcloud: sonarsource/sonarcloud@2.0.0
 
 jobs:
@@ -10,8 +9,9 @@ jobs:
       - image: cimg/node:20.19.0
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - run:
+          name: Install Dependencies
+          command: npm install
       - run:
           name: Build Angular Production Bundle
           command: npx ng build --configuration production
@@ -26,10 +26,11 @@ jobs:
       - image: cimg/node:20.19.0
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
       - run:
-          name: NPM Audit (fail on high severity)
+          name: Install Dependencies
+          command: npm install
+      - run:
+          name: NPM Audit
           command: npm audit --audit-level=high || true
 
   sonarqube_scan:
@@ -47,8 +48,9 @@ jobs:
       - image: cimg/node:20.19.0
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - run:
+          name: Install Dependencies
+          command: npm install
       - run:
           name: Run Security Tests
           command: npx jest --testPathPatterns="security" --passWithNoTests --forceExit
