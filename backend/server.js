@@ -104,26 +104,19 @@ mongoose.connect(process.env.MONGO_URI)
     console.error('❌ MongoDB connection error:', err.message);
     process.exit(1);
   });
-
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/employee', employeeRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-
-// 404 fallback
-app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
-
-// Global error handler
-app.use((err, _req, res, _next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({ error: 'Internal server error' });
+// ✅ Correctly defined Health Check Endpoint
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is healthy and running' });
 });
 
-// ─── HTTPS Server ─────────────────────────────────────────────────────────────
+// 404 fallback (Keep only one of these at the very bottom of your routes)
+app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));// ─── HTTPS Server ─────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 const sslOptions = {
