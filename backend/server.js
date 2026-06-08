@@ -27,9 +27,9 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const mongoose = require('mongoose');
 
-const authRoutes = require('./routes/auth');
-const paymentRoutes = require('./routes/payments');
-const employeeRoutes = require('./routes/employee');
+const authRoutes = require('./src/routes/auth');
+const paymentRoutes = require('./src/routes/payments');
+const employeeRoutes = require('./src/routes/employee');
 
 const app = express();
 
@@ -98,11 +98,7 @@ app.use(xss());
 
 // ─── Database ─────────────────────────────────────────────────────────────────
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err.message);
