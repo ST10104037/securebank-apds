@@ -1,24 +1,8 @@
-/**
- * server.js — APDS International Payments Portal API
- *
- * Security measures implemented:
- *  1. HTTPS / SSL (all traffic encrypted)
- *  2. Helmet (security headers: CSP, X-Frame-Options, HSTS, XSS protection, etc.)
- *  3. Rate limiting (brute-force protection)
- *  4. express-mongo-sanitize (NoSQL injection prevention)
- *  5. xss-clean (XSS prevention on req body/params)
- *  6. CORS (restricted to allowed origin)
- *  7. bcryptjs password hashing + salting
- *  8. JWT authentication (stateless, signed tokens)
- *  9. Input whitelisting with RegEx (see validators)
- * 10. HTTP → HTTPS redirect server
- */
-
 require('dotenv').config();
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const https = require('node:https');
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -33,36 +17,24 @@ const employeeRoutes = require('./src/routes/employee');
 
 const app = express();
 
-// ─── Security Middleware ──────────────────────────────────────────────────────
-
-// Helmet sets many secure HTTP headers at once:
-//   Content-Security-Policy, X-Frame-Options: DENY (clickjacking),
-//   Strict-Transport-Security (HSTS), X-Content-Type-Options, etc.
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
-        frameSrc: ["'none'"],
-      },
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
     },
-    hsts: {
-      maxAge: 31536000,       // 1 year
-      includeSubDomains: true,
-      preload: true,
-    },
-    frameguard: { action: 'deny' }, // X-Frame-Options: DENY (clickjacking protection)
-  })
-);
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  frameguard: { action: 'deny' },
+}));
 
-// Rate limiting — prevents brute-force attacks on auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,                   // max 10 attempts per window
+  windowMs: 15 * 60 * 1000,
+  max: 10,
   message: { error: 'Too many attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -76,47 +48,30 @@ const generalLimiter = rateLimit({
 });
 
 app.use(generalLimiter);
-
-// CORS — only allow requests from our Angular front-end
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || 'https://localhost:4200',
-    methods: ['GET', 'POST', 'PUT', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  })
-);
-
-// Body parser
-app.use(express.json({ limit: '10kb' })); // limit body size (DoS protection)
-
-// NoSQL injection prevention — strips $ and . from request body/params/query
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'https://localhost:4200',
+  methods: ['GET', 'POST', 'PUT', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+app.use(express.json({ limit: '10kb' }));
 app.use(mongoSanitize());
-
-// XSS prevention — sanitizes HTML tags from input
 app.use(xss());
-
-// ─── Database ─────────────────────────────────────────────────────────────────
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ MongoDB connected'))
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1);
-  });
-// ─── Routes ───────────────────────────────────────────────────────────────────
+  .catch((err) => { console.error('❌ MongoDB error:', err.message); process.exit(1); });
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/employee', employeeRoutes);
 
-// ✅ Correctly defined Health Check Endpoint
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is healthy and running' });
+app.get('/api/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
+app.use((err, _req, res, _next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ error: 'Internal server error' });
 });
-
-// 404 fallback (Keep only one of these at the very bottom of your routes)
-app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));// ─── HTTPS Server ─────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
 const sslOptions = {
@@ -128,12 +83,9 @@ https.createServer(sslOptions, app).listen(PORT, () => {
   console.log(`✅ HTTPS Server running on https://localhost:${PORT}`);
 });
 
-// HTTP → HTTPS redirect (port 8080 → 3000)
-http
-  .createServer((_req, res) => {
-    res.writeHead(301, { Location: `https://localhost:${PORT}` });
-    res.end();
-  })
-  .listen(8080, () => {
-    console.log('ℹ️  HTTP redirect server on port 8080 → HTTPS');
-  });
+http.createServer((_req, res) => {
+  res.writeHead(301, { Location: `https://localhost:${PORT}` });
+  res.end();
+}).listen(8080, () => {
+  console.log('ℹ️  HTTP redirect server on port 8080 → HTTPS');
+});
