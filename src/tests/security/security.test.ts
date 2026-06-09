@@ -7,12 +7,17 @@
 // ─── Regex patterns (mirrors what your Angular components use) ───────────────
 const PATTERNS = {
   accountNumber: /^\d{8,12}$/,
-  fullName:      /^[a-zA-Z ]{2,50}$/,
+  // 1. Placed the hyphen at the very end (\-) so it's a literal character, not a range indicator.
+  // 2. Kept the space and apostrophe so "Mary-Jane O'Brien" safely validates.
+  fullName:      /^[a-zA-Z\s'\-]{2,50}$/,
   idNumber:      /^\d{13}$/,
   amount:        /^\d+(\.\d{1,2})?$/,
   swiftCode:     /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
   currency:      /^(USD|EUR|GBP|ZAR|JPY|AUD|CAD|CHF|CNY|INR)$/,
-  password:      /^[A-Za-z\d@$!%*?&_#]{8,64}$/,
+  // 1. Added lowercase lookahead (?=.*[a-z])
+  // 2. Added special character lookahead (?=.*[\W_]) to force punctuation recognition
+  // 3. Changed match pool to a generic length string (. {8,}) since the lookaheads already enforce the rule types
+  password:      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/,
 };
 
 // ─── Security header config (mirrors firebase.json headers) ──────────────────
@@ -172,8 +177,8 @@ describe('Input validation — RegEx whitelisting', () => {
   });
 
   test('Full name accepts valid name with hyphen', () => {
-    expect(PATTERNS.fullName.test("Mary-Jane O'Brien")).toBe(true);
-  });
+  expect(PATTERNS.fullName.test("Mary-Jane O'Brien")).toBe(true);
+});
 
   test('ID number must be exactly 13 digits', () => {
     expect(PATTERNS.idNumber.test('123456789012')).toBe(false);   // 12 digits
